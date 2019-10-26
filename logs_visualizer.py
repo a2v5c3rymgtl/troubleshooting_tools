@@ -3,15 +3,13 @@ import re
 import sys
 import os
 import argparse
-from typing import Dict, Any, Optional
-from anytree import Node, RenderTree
+from anytree import Node as BaseNode
+from anytree import RenderTree
 from anytree.exporter import DotExporter
 from uuid import uuid4
 from config import GENERAL_MESSAGE_PATTERN, COMPLETE_MESSAGE_PATTERN, COMMENCE_MESSAGE_PATTERN
 from config import SCOPE_NAME_GROUP, MESSAGE_LEVEL_GROUP
-from dataclasses import dataclass, field
 import colorama
-
 
 colorama.init()
 
@@ -36,72 +34,57 @@ def get_message_level(line) -> str:
     return re.match(GENERAL_MESSAGE_PATTERN, line).group(MESSAGE_LEVEL_GROUP)
 
 
-@dataclass
-class Context:
-    node: Optional[Node]
-    previous_context: Optional['Context']
-    info: Dict[str, Any] = field(default_factory=dict)
+class Node(BaseNode):
+    def __init__(self, name, parent=None, children=None, error=False, warning=False, **kwargs):
+        self.info = dict()
+        self.call_id = uuid4()
+        self.error = error
+        self.warning = warning
+        super(Node, self).__init__(name, parent, children, **kwargs)
 
 
 class CallGraph:
     """
     TODO think up about the execution order and represent it something usefully and clearly
-    TODO implement image render with collected_info data
+    TODO implement image render with collected info data
     TODO add an animation creation functionality
     """
 
     def __init__(self, parent: Node = None):
-        self.main_scope = Node(name='Start', parent=parent, call_id=None)
-        self.collected_info = dict()
-        self.context = Context(
-            node=self.main_scope,
-            previous_context=None
-        )
+        self.main_scope = Node(name='Start', parent=parent)
+        self.node = self.main_scope
 
     def commence(self, scope_name: str):
-        self.context = Context(
-            node=None,
-            previous_context=self.context
-        )
-        node = Node(scope_name, self.context.previous_context.node, call_id=uuid4().hex, error=False,
-                    warning=False)
-        self.context.node = node
-        self.collected_info[self.context.node.call_id] = dict()
+        self.node = Node(name=scope_name, parent=self.node)
 
     def complete(self):
-        if self.context.info.get('error'):
-            self.context.node.error = True
-        if self.context.info.get('warning'):
-            self.context.node.warning = True
+        if self.node.info.get('error'):
+            self.node.error = True
+        if self.node.info.get('warning'):
+            self.node.warning = True
 
-        if self.context.previous_context is None:
+        if self.node.parent is None:
             sys.stderr.write('main function has been completed and have not parents, log is incorrect\n')
-            self.context = Context(
-                node=Node(name='OWERFLOW CONTEXT',
-                          parent=self.context.node,
-                          call_id=uuid4().hex,
-                          error=False,
-                          warning=False),
-                previous_context=None
-            )
+            self.node = Node(name='OVERFLOW CONTEXT', parent=self.node)
         else:
-            self.context = self.context.previous_context
+            self.node = self.node.parent
 
     def add_info(self, **info):
-        self.context.info.update(info)
+        self.node.info.update(info)
 
     def render_as_text(self):
         for pre, fill, node in RenderTree(self.main_scope):
             error_mark = ''
             warning_mark = ''
-            if hasattr(node, 'error') and node.error:
+
+            if node.error:
                 error_mark = '[ERROR]'
-            if hasattr(node, 'warning') and node.warning:
+            if node.warning:
                 warning_mark = '[WARNING]'
 
-            if error_mark:
+            if node.error:
                 sys.stdout.write(f'{colorama.Fore.RED}{pre}{node.name} {error_mark} {warning_mark}\n')
-            elif warning_mark:
+            elif node.warning:
                 sys.stdout.write(f'{colorama.Fore.YELLOW}{pre}{node.name} {error_mark} {warning_mark}\n')
             else:
                 sys.stdout.write(f'{colorama.Fore.CYAN}{pre}{node.name} {error_mark} {warning_mark}\n')
@@ -120,27 +103,25 @@ class LogsReader:
         self.call_graph = CallGraph(parent)
 
     def analyse(self):
-        for line_no, line in enumerate(self.content.split('\n')):
-            if not is_valid_message(line):
-                continue
+        for line in self.content.split('\n'):
+            self._analyse(line)
 
-            if is_commence_message(line):
-                self.call_graph.commence(get_scope_name(line))
-                self.call_graph.add_info(error=False)
-                self.call_graph.add_info(warning=False)
-            elif is_complete_message(line):
-                self.call_graph.complete()
+    def _analyse(self, line: str):
+        if not is_valid_message(line):
+            return
+        if is_commence_message(line):
+            self.call_graph.commence(get_scope_name(line))
+        elif is_complete_message(line):
+            self.call_graph.complete()
 
-            msg_lvl = get_message_level(line)
-
-            if msg_lvl == 'error':
-                self.call_graph.add_info(error=True)
-
-            if msg_lvl == 'warning':
-                self.call_graph.add_info(warning=True)
+        msg_lvl = get_message_level(line)
+        if msg_lvl == 'error':
+            self.call_graph.add_info(error=True)
+        if msg_lvl == 'warning':
+            self.call_graph.add_info(warning=True)
 
 
-def main(logfile: str, export_file_name: str, parent=None, to_stdout: bool=True) -> CallGraph:
+def main(logfile: str, export_file_name: str, parent=None, to_stdout: bool = True) -> CallGraph:
     if not os.path.exists(logfile):
         sys.stderr.write(f'{os.path.abspath(logfile)} is not exist\n')
         sys.exit(-1)

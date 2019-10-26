@@ -5,7 +5,7 @@ import argparse
 import os
 from typing import List
 from stat import S_ISREG, ST_MTIME, ST_MODE
-from anytree import Node
+from logs_visualizer import Node
 
 
 def get_files_sorted_by_creation_time(dirpath: str) -> List[str]:
