@@ -11,6 +11,26 @@ import os
 import argparse
 
 
+def is_valid_message(line: str) -> bool:
+    return bool(re.match(GENERAL_MESSAGE_PATTERN, line))
+
+
+def is_commence_message(line) -> bool:
+    return bool(re.match(COMMENCE_MESSAGE_PATTERN, line))
+
+
+def is_complete_message(line) -> bool:
+    return bool(re.match(COMPLETE_MESSAGE_PATTERN, line))
+
+
+def get_scope_name(line) -> str:
+    return re.match(GENERAL_MESSAGE_PATTERN, line).group(SCOPE_NAME_GROUP)
+
+
+def get_message_level(line) -> str:
+    return re.match(GENERAL_MESSAGE_PATTERN, line).group(MESSAGE_LEVEL_GROUP)
+
+
 class CallGraph:
     """
     TODO think up about the execution order and represent it something usefully and clearly
@@ -116,6 +136,7 @@ def main(logfile: str, export_file_name: str, parent=None, to_stdout: bool=True)
             sys.stderr.write(f'{message}\n')
             sys.stderr.write('change filename and try again\n')
             sys.exit(-1)
+
     if to_stdout:
         reader.call_graph.render_as_text()
     return reader.call_graph
