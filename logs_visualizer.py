@@ -117,22 +117,11 @@ class LogsReader:
         return re.match(self.common_pattern, line).group(3)
 
 
-if __name__ == '__main__':
-    import argparse
-    import os
-
-    parser = argparse.ArgumentParser(description='Logs visualizer')
-    parser.add_argument('logfile', help='one logfile for visualization', metavar='some_procedure.log')
-    parser.add_argument('--export', help='export call graph to image', metavar='output.jpg')
-
-    args = parser.parse_args()
-    logfile = args.logfile
-
+def main(logfile: str, export_file_name: str):
     if not os.path.exists(logfile):
         sys.stderr.write(f'{os.path.abspath(logfile)} is not exist\n')
         sys.exit(-1)
 
-    export_file_name = args.export
     reader = LogsReader(open(logfile).read())
 
     try:
@@ -153,3 +142,17 @@ if __name__ == '__main__':
             sys.exit(-1)
     else:
         reader.call_graph.render_as_text()
+
+
+if __name__ == '__main__':
+    import argparse
+    import os
+
+    parser = argparse.ArgumentParser(description='Logs visualizer')
+    parser.add_argument('logfile', help='one logfile for visualization', metavar='some_procedure.log')
+    parser.add_argument('--export', help='export call graph to image', metavar='output.jpg')
+
+    args = parser.parse_args()
+    logfile = args.logfile
+    export_file_name = args.export
+    main(logfile, export_file_name)
