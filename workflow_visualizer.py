@@ -23,11 +23,11 @@ class WorkflowVisualizer:
             name = 'workflow'
 
         self.main = logs_visualizer.CallGraph()
-        self.main.main_scope = Node(name=name)
+        self.main.main_scope = Node(name=name, call_id=None)
 
     def analyse(self):
         for log_file in get_files_sorted_by_creation_time(self.directory):
-            parent = Node(log_file, parent=self.main.main_scope)
+            parent = Node(log_file, parent=self.main.main_scope, call_id=None)
             logs_visualizer.main(log_file, None, parent=parent, to_stdout=False)
 
     def render_as_text(self):

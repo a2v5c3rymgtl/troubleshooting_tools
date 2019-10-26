@@ -1,66 +1,15 @@
 #!/usr/local/bin/python3.7
-import re
-import sys
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from anytree import Node, RenderTree
 from anytree.exporter import DotExporter
 from uuid import uuid4
 from config import GENERAL_MESSAGE_PATTERN, COMPLETE_MESSAGE_PATTERN, COMMENCE_MESSAGE_PATTERN
 from config import SCOPE_NAME_GROUP, MESSAGE_LEVEL_GROUP
+from dataclasses import dataclass, field
+import re
+import sys
 import os
 import argparse
-
-
-class CallGraph:
-    """
-    TODO think up about the execution order and represent it something usefully and clearly
-    TODO implement text render with collected_info data
-    TODO implement image render with collected_info data
-    TODO add colors in text render
-    TODO add an animation creation functionality
-    """
-    current_node: Node
-    previous_scope: Node
-    collected_info: Dict[str, Dict[str, Any]]
-    current_call_id: str
-    previous_call_id: str
-
-    def __init__(self, parent: Node = None):
-        self.main_scope = Node(name='Start', parent=parent)
-        self.previous_scope = self.main_scope
-        self.previous_call_id = None
-        self.current_call_id = 'main'
-        self.collected_info = dict()
-
-    def commence(self, scope_name: str):
-        self.previous_call_id = self.current_call_id
-        self.current_call_id = uuid4().hex
-        self.current_node = Node(scope_name, parent=self.previous_scope, call_id=self.current_call_id)
-        self.previous_scope = self.current_node
-        self.collected_info[self.current_call_id] = dict()
-
-    def complete(self):
-        if self.previous_scope is None:
-            raise ValueError('main function has been completed and have not parents, log is incorrect')
-        self.previous_scope = self.previous_scope.parent
-
-    def add_info(self, **info):
-        self.collected_info[self.current_call_id].update(info)
-
-    def get_info(self, call_id: str, key: str) -> Any:
-        return self.collected_info[call_id][key]
-
-    def render_as_text(self):
-        for pre, fill, node in RenderTree(self.main_scope):
-            sys.stdout.write(f'{pre}{node.name}\n')
-
-    def _get_node_attrs(self, node):
-        has_error = self.get_info(node.call_id, 'error')
-        has_warning = self.get_info(node.call_id, 'warning')
-        return f'{node.name} {has_error} {has_warning} {node.call_id}'
-
-    def render_as_picture(self, picture_name: str):
-        DotExporter(self.main_scope).to_picture(picture_name)
 
 
 def is_valid_message(line: str) -> bool:
@@ -83,6 +32,77 @@ def get_message_level(line) -> str:
     return re.match(GENERAL_MESSAGE_PATTERN, line).group(MESSAGE_LEVEL_GROUP)
 
 
+@dataclass
+class Context:
+    node: Optional[Node]
+    previous_context: Optional['Context']
+    info: Dict[str, Any] = field(default_factory=dict)
+
+
+class CallGraph:
+    """
+    TODO think up about the execution order and represent it something usefully and clearly
+    TODO implement text render with collected_info data
+    TODO implement image render with collected_info data
+    TODO add colors in text render
+    TODO add an animation creation functionality
+    """
+
+    def __init__(self, parent: Node = None):
+        self.main_scope = Node(name='Start', parent=parent, call_id=None)
+        self.collected_info = dict()
+        self.context = Context(
+            node=self.main_scope,
+            previous_context=None
+        )
+
+    def commence(self, scope_name: str):
+        self.context = Context(
+            node=None,
+            previous_context=self.context
+        )
+        node = Node(scope_name, self.context.previous_context.node, call_id=uuid4().hex, error=False,
+                    warning=False)
+        self.context.node = node
+        self.collected_info[self.context.node.call_id] = dict()
+
+    def complete(self):
+        if self.context.info.get('error'):
+            self.context.node.error = True
+        if self.context.info.get('warning'):
+            self.context.node.warning = True
+
+        if self.context.previous_context is None:
+            sys.stderr.write('main function has been completed and have not parents, log is incorrect\n')
+            self.context = Context(
+                node=Node(name='OWERFLOW CONTEXT',
+                          parent=self.context.node,
+                          call_id=uuid4().hex,
+                          error=False,
+                          warning=False),
+                previous_context=None
+            )
+        else:
+            self.context = self.context.previous_context
+
+    def add_info(self, **info):
+        self.context.info.update(info)
+
+    def render_as_text(self):
+        for pre, fill, node in RenderTree(self.main_scope):
+            error_mark = ''
+            warning_mark = ''
+            if hasattr(node, 'error') and node.error:
+                error_mark = '[ERROR]'
+            if hasattr(node, 'warning') and node.warning:
+                warning_mark = '[WARNING]'
+
+            sys.stdout.write(f'{pre}{node.name} {error_mark} {warning_mark}\n')
+
+    def render_as_picture(self, picture_name: str):
+        DotExporter(self.main_scope).to_picture(picture_name)
+
+
 class LogsReader:
     """
     TODO add parsing of XMLs and JSONs and validate it by user defined schemas
@@ -95,14 +115,6 @@ class LogsReader:
     def analyse(self):
         for line_no, line in enumerate(self.content.split('\n')):
             if not is_valid_message(line):
-                if 'Commence' in line:
-                    raise RuntimeError()
-                if 'Complete' in line:
-                    raise RuntimeError()
-                if 'getVolumePairs' in line:
-                    raise RuntimeError()
-                if 'ValidateTargetGroups' in line:
-                    raise RuntimeError()
                 continue
 
             if is_commence_message(line):
@@ -133,6 +145,7 @@ def main(logfile: str, export_file_name: str, parent=None, to_stdout: bool=True)
     except ValueError as error:
         error_message = error.args[0]
         sys.stderr.write(f'{error_message}\n')
+        sys.stderr.write(f'log file: {logfile}\n{open(logfile).read()}')
         sys.exit(-1)
 
     if export_file_name:
@@ -144,6 +157,7 @@ def main(logfile: str, export_file_name: str, parent=None, to_stdout: bool=True)
             sys.stderr.write(f'{message}\n')
             sys.stderr.write('change filename and try again\n')
             sys.exit(-1)
+
     if to_stdout:
         reader.call_graph.render_as_text()
     return reader.call_graph
