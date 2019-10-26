@@ -1,3 +1,4 @@
+#!/usr/local/bin/python3.7
 import logs_visualizer
 import sys
 from typing import List
