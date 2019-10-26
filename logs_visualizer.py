@@ -1,18 +1,23 @@
 #!/usr/local/bin/python3.7
+import re
+import sys
 from typing import Dict, Any
 from anytree import Node, RenderTree
 from anytree.exporter import DotExporter
 from uuid import uuid4
-import re
-import sys
+from config import GENERAL_MESSAGE_PATTERN, COMPLETE_MESSAGE_PATTERN, COMMENCE_MESSAGE_PATTERN
+from config import SCOPE_NAME_GROUP, MESSAGE_LEVEL_GROUP
+import os
+import argparse
 
 
 class CallGraph:
     """
-    TODO think up about execution order and represent it something usefully and clearly
+    TODO think up about the execution order and represent it something usefully and clearly
     TODO implement text render with collected_info data
     TODO implement image render with collected_info data
     TODO add colors in text render
+    TODO add an animation creation functionality
     """
     current_node: Node
     previous_scope: Node
@@ -20,8 +25,8 @@ class CallGraph:
     current_call_id: str
     previous_call_id: str
 
-    def __init__(self):
-        self.main_scope = Node(name='main')
+    def __init__(self, parent: Node = None):
+        self.main_scope = Node(name='Start', parent=parent)
         self.previous_scope = self.main_scope
         self.previous_call_id = None
         self.current_call_id = 'main'
@@ -58,42 +63,56 @@ class CallGraph:
         DotExporter(self.main_scope).to_picture(picture_name)
 
 
+def is_valid_message(line: str) -> bool:
+    return bool(re.match(GENERAL_MESSAGE_PATTERN, line))
+
+
+def is_commence_message(line) -> bool:
+    return bool(re.match(COMMENCE_MESSAGE_PATTERN, line))
+
+
+def is_complete_message(line) -> bool:
+    return bool(re.match(COMPLETE_MESSAGE_PATTERN, line))
+
+
+def get_scope_name(line) -> str:
+    return re.match(GENERAL_MESSAGE_PATTERN, line).group(SCOPE_NAME_GROUP)
+
+
+def get_message_level(line) -> str:
+    return re.match(GENERAL_MESSAGE_PATTERN, line).group(MESSAGE_LEVEL_GROUP)
+
+
 class LogsReader:
     """
     TODO add parsing of XMLs and JSONs and validate it by user defined schemas
-    TODO add user-defined regexp patterns
-
     """
-    common_pattern = re.compile(
-        "^\[(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}.\d{3}): \[((?:trivia|verbose|info|warning|error))\] "
-        "'(.*)' (.*.cs) (\d{1,4}) .* \(Process id=(\d{1,9})\) \(Thread id=(\d{1,3})\)\]: (.*)")
 
-    commence_pattern = re.compile(
-        "^\[(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}.\d{3}): \[((?:trivia|verbose|info|warning|error))\] '(.*)' (.*.cs) "
-        "(\d{1,4}) .* \(Process id=(\d{1,9})\) \(Thread id=(\d{1,3})\)\]: Commence: (.*)")
-
-    complete_pattern = re.compile(
-        "^\[(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}.\d{3}): \[((?:trivia|verbose|info|warning|error))\] '(.*)' (.*.cs) "
-        "(\d{1,4}) .* \(Process id=(\d{1,9})\) \(Thread id=(\d{1,3})\)\]: Complete: (.*)"
-    )
-
-    def __init__(self, content: str):
+    def __init__(self, content: str, parent=None):
         self.content = content
-        self.call_graph = CallGraph()
+        self.call_graph = CallGraph(parent)
 
     def analyse(self):
         for line_no, line in enumerate(self.content.split('\n')):
-            if not self._is_valid_message(line):
+            if not is_valid_message(line):
+                if 'Commence' in line:
+                    raise RuntimeError()
+                if 'Complete' in line:
+                    raise RuntimeError()
+                if 'getVolumePairs' in line:
+                    raise RuntimeError()
+                if 'ValidateTargetGroups' in line:
+                    raise RuntimeError()
                 continue
 
-            if self._is_commence_message(line):
-                self.call_graph.commence(self._get_scope_name(line))
+            if is_commence_message(line):
+                self.call_graph.commence(get_scope_name(line))
                 self.call_graph.add_info(error=False)
                 self.call_graph.add_info(warning=False)
-            elif self._is_complete_message(line):
+            elif is_complete_message(line):
                 self.call_graph.complete()
 
-            msg_lvl = self._get_message_level(line)
+            msg_lvl = get_message_level(line)
 
             if msg_lvl == 'error':
                 self.call_graph.add_info(error=True)
@@ -101,39 +120,13 @@ class LogsReader:
             if msg_lvl == 'warning':
                 self.call_graph.add_info(warning=True)
 
-    def _is_valid_message(self, line: str):
-        return bool(re.match(self.common_pattern, line))
 
-    def _is_commence_message(self, line):
-        return bool(re.match(self.commence_pattern, line))
-
-    def _is_complete_message(self, line):
-        return bool(re.match(self.complete_pattern, line))
-
-    def _get_scope_name(self, line):
-        return re.match(self.common_pattern, line).group(4)
-
-    def _get_message_level(self, line):
-        return re.match(self.common_pattern, line).group(3)
-
-
-if __name__ == '__main__':
-    import argparse
-    import os
-
-    parser = argparse.ArgumentParser(description='Logs visualizer')
-    parser.add_argument('logfile', help='one logfile for visualization', metavar='some_procedure.log')
-    parser.add_argument('--export', help='export call graph to image', metavar='output.jpg')
-
-    args = parser.parse_args()
-    logfile = args.logfile
-
+def main(logfile: str, export_file_name: str, parent=None, to_stdout: bool=True) -> CallGraph:
     if not os.path.exists(logfile):
         sys.stderr.write(f'{os.path.abspath(logfile)} is not exist\n')
         sys.exit(-1)
 
-    export_file_name = args.export
-    reader = LogsReader(open(logfile).read())
+    reader = LogsReader(open(logfile).read(), parent=parent)
 
     try:
         reader.analyse()
@@ -151,5 +144,14 @@ if __name__ == '__main__':
             sys.stderr.write(f'{message}\n')
             sys.stderr.write('change filename and try again\n')
             sys.exit(-1)
-    else:
+    if to_stdout:
         reader.call_graph.render_as_text()
+    return reader.call_graph
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Logs visualizer')
+    parser.add_argument('logfile', help='one logfile for visualization', metavar='some_procedure.log')
+    parser.add_argument('--export', help='export call graph to image', metavar='output.jpg')
+    args = parser.parse_args()
+    main(args.logfile, args.export, to_stdout=not args.export)
