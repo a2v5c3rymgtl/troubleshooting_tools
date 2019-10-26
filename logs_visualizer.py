@@ -10,6 +10,10 @@ from uuid import uuid4
 from config import GENERAL_MESSAGE_PATTERN, COMPLETE_MESSAGE_PATTERN, COMMENCE_MESSAGE_PATTERN
 from config import SCOPE_NAME_GROUP, MESSAGE_LEVEL_GROUP
 from dataclasses import dataclass, field
+import colorama
+
+
+colorama.init()
 
 
 def is_valid_message(line: str) -> bool:
@@ -97,7 +101,12 @@ class CallGraph:
             if hasattr(node, 'warning') and node.warning:
                 warning_mark = '[WARNING]'
 
-            sys.stdout.write(f'{pre}{node.name} {error_mark} {warning_mark}\n')
+            if error_mark:
+                sys.stdout.write(f'{colorama.Fore.RED}{pre}{node.name} {error_mark} {warning_mark}\n')
+            elif warning_mark:
+                sys.stdout.write(f'{colorama.Fore.YELLOW}{pre}{node.name} {error_mark} {warning_mark}\n')
+            else:
+                sys.stdout.write(f'{colorama.Fore.CYAN}{pre}{node.name} {error_mark} {warning_mark}\n')
 
     def render_as_picture(self, picture_name: str):
         DotExporter(self.main_scope).to_picture(picture_name)
