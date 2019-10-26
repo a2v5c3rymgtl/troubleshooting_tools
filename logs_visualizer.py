@@ -95,14 +95,6 @@ class LogsReader:
     def analyse(self):
         for line_no, line in enumerate(self.content.split('\n')):
             if not is_valid_message(line):
-                if 'Commence' in line:
-                    raise RuntimeError()
-                if 'Complete' in line:
-                    raise RuntimeError()
-                if 'getVolumePairs' in line:
-                    raise RuntimeError()
-                if 'ValidateTargetGroups' in line:
-                    raise RuntimeError()
                 continue
 
             if is_commence_message(line):
