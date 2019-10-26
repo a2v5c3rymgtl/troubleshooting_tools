@@ -46,9 +46,7 @@ class Context:
 class CallGraph:
     """
     TODO think up about the execution order and represent it something usefully and clearly
-    TODO implement text render with collected_info data
     TODO implement image render with collected_info data
-    TODO add colors in text render
     TODO add an animation creation functionality
     """
 
