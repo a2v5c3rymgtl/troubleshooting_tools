@@ -34,6 +34,10 @@ def get_message_level(line) -> str:
     return re.match(GENERAL_MESSAGE_PATTERN, line).group(MESSAGE_LEVEL_GROUP)
 
 
+def get_message_time(line) -> str:
+    return re.match(GENERAL_MESSAGE_PATTERN, line).group(2)
+
+
 class Node(BaseNode):
     def __init__(self, name, parent=None, children=None, error=False, warning=False, **kwargs):
         self.info = dict()
@@ -54,8 +58,8 @@ class CallGraph:
         self.main_scope = Node(name='Start', parent=parent)
         self.node = self.main_scope
 
-    def commence(self, scope_name: str):
-        self.node = Node(name=scope_name, parent=self.node)
+    def commence(self, scope_name: str, call_time: str):
+        self.node = Node(name=f'{scope_name} ({call_time})', parent=self.node)
 
     def complete(self):
         if self.node.info.get('error'):
@@ -72,22 +76,25 @@ class CallGraph:
     def add_info(self, **info):
         self.node.info.update(info)
 
+    def _pprint(self, node, pre):
+        error_mark = ''
+        warning_mark = ''
+
+        if node.error:
+            error_mark = '[ERROR]'
+        if node.warning:
+            warning_mark = '[WARNING]'
+
+        if node.error:
+            sys.stdout.write(f'{colorama.Fore.RED}{pre}{node.name} {error_mark} {warning_mark}\n')
+        elif node.warning:
+            sys.stdout.write(f'{colorama.Fore.YELLOW}{pre}{node.name} {error_mark} {warning_mark}\n')
+        else:
+            sys.stdout.write(f'{colorama.Fore.CYAN}{pre}{node.name} {error_mark} {warning_mark}\n')
+
     def render_as_text(self):
-        for pre, fill, node in RenderTree(self.main_scope):
-            error_mark = ''
-            warning_mark = ''
-
-            if node.error:
-                error_mark = '[ERROR]'
-            if node.warning:
-                warning_mark = '[WARNING]'
-
-            if node.error:
-                sys.stdout.write(f'{colorama.Fore.RED}{pre}{node.name} {error_mark} {warning_mark}\n')
-            elif node.warning:
-                sys.stdout.write(f'{colorama.Fore.YELLOW}{pre}{node.name} {error_mark} {warning_mark}\n')
-            else:
-                sys.stdout.write(f'{colorama.Fore.CYAN}{pre}{node.name} {error_mark} {warning_mark}\n')
+        for pre, _, node in RenderTree(self.main_scope):
+            self._pprint(node, pre)
 
     def render_as_picture(self, picture_name: str):
         DotExporter(self.main_scope).to_picture(picture_name)
@@ -110,7 +117,9 @@ class LogsReader:
         if not is_valid_message(line):
             return
         if is_commence_message(line):
-            self.call_graph.commence(get_scope_name(line))
+            call_time = get_message_time(line)
+            scope_name = get_scope_name(line)
+            self.call_graph.commence(scope_name, call_time)
         elif is_complete_message(line):
             self.call_graph.complete()
 
