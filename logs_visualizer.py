@@ -1,10 +1,10 @@
 #!/usr/local/bin/python3.7
+import re
+import sys
 from typing import Dict, Any
 from anytree import Node, RenderTree
 from anytree.exporter import DotExporter
 from uuid import uuid4
-import re
-import sys
 from config import GENERAL_MESSAGE_PATTERN, COMPLETE_MESSAGE_PATTERN, COMMENCE_MESSAGE_PATTERN
 from config import SCOPE_NAME_GROUP, MESSAGE_LEVEL_GROUP
 
