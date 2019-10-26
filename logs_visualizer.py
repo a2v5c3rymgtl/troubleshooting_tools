@@ -7,6 +7,8 @@ from anytree.exporter import DotExporter
 from uuid import uuid4
 from config import GENERAL_MESSAGE_PATTERN, COMPLETE_MESSAGE_PATTERN, COMMENCE_MESSAGE_PATTERN
 from config import SCOPE_NAME_GROUP, MESSAGE_LEVEL_GROUP
+import os
+import argparse
 
 
 class CallGraph:
@@ -23,8 +25,8 @@ class CallGraph:
     current_call_id: str
     previous_call_id: str
 
-    def __init__(self):
-        self.main_scope = Node(name='main')
+    def __init__(self, parent: Node = None):
+        self.main_scope = Node(name='Start', parent=parent)
         self.previous_scope = self.main_scope
         self.previous_call_id = None
         self.current_call_id = 'main'
@@ -86,9 +88,9 @@ class LogsReader:
     TODO add parsing of XMLs and JSONs and validate it by user defined schemas
     """
 
-    def __init__(self, content: str):
+    def __init__(self, content: str, parent=None):
         self.content = content
-        self.call_graph = CallGraph()
+        self.call_graph = CallGraph(parent)
 
     def analyse(self):
         for line_no, line in enumerate(self.content.split('\n')):
@@ -119,12 +121,12 @@ class LogsReader:
                 self.call_graph.add_info(warning=True)
 
 
-def main(logfile: str, export_file_name: str):
+def main(logfile: str, export_file_name: str, parent=None, to_stdout: bool=True) -> CallGraph:
     if not os.path.exists(logfile):
         sys.stderr.write(f'{os.path.abspath(logfile)} is not exist\n')
         sys.exit(-1)
 
-    reader = LogsReader(open(logfile).read())
+    reader = LogsReader(open(logfile).read(), parent=parent)
 
     try:
         reader.analyse()
@@ -142,16 +144,14 @@ def main(logfile: str, export_file_name: str):
             sys.stderr.write(f'{message}\n')
             sys.stderr.write('change filename and try again\n')
             sys.exit(-1)
-    else:
+    if to_stdout:
         reader.call_graph.render_as_text()
+    return reader.call_graph
 
 
 if __name__ == '__main__':
-    import argparse
-    import os
-
     parser = argparse.ArgumentParser(description='Logs visualizer')
     parser.add_argument('logfile', help='one logfile for visualization', metavar='some_procedure.log')
     parser.add_argument('--export', help='export call graph to image', metavar='output.jpg')
     args = parser.parse_args()
-    main(args.logfile, args.export)
+    main(args.logfile, args.export, to_stdout=not args.export)
