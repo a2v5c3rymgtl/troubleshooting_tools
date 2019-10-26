@@ -1,12 +1,12 @@
 #!/usr/local/bin/python3.7
-import re
-import sys
 from typing import Dict, Any
 from anytree import Node, RenderTree
 from anytree.exporter import DotExporter
 from uuid import uuid4
 from config import GENERAL_MESSAGE_PATTERN, COMPLETE_MESSAGE_PATTERN, COMMENCE_MESSAGE_PATTERN
 from config import SCOPE_NAME_GROUP, MESSAGE_LEVEL_GROUP
+import re
+import sys
 import os
 import argparse
 
@@ -61,26 +61,6 @@ class CallGraph:
 
     def render_as_picture(self, picture_name: str):
         DotExporter(self.main_scope).to_picture(picture_name)
-
-
-def is_valid_message(line: str) -> bool:
-    return bool(re.match(GENERAL_MESSAGE_PATTERN, line))
-
-
-def is_commence_message(line) -> bool:
-    return bool(re.match(COMMENCE_MESSAGE_PATTERN, line))
-
-
-def is_complete_message(line) -> bool:
-    return bool(re.match(COMPLETE_MESSAGE_PATTERN, line))
-
-
-def get_scope_name(line) -> str:
-    return re.match(GENERAL_MESSAGE_PATTERN, line).group(SCOPE_NAME_GROUP)
-
-
-def get_message_level(line) -> str:
-    return re.match(GENERAL_MESSAGE_PATTERN, line).group(MESSAGE_LEVEL_GROUP)
 
 
 class LogsReader:
