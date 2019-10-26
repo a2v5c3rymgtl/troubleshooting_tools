@@ -1,4 +1,8 @@
 #!/usr/local/bin/python3.7
+import re
+import sys
+import os
+import argparse
 from typing import Dict, Any, Optional
 from anytree import Node, RenderTree
 from anytree.exporter import DotExporter
@@ -6,10 +10,6 @@ from uuid import uuid4
 from config import GENERAL_MESSAGE_PATTERN, COMPLETE_MESSAGE_PATTERN, COMMENCE_MESSAGE_PATTERN
 from config import SCOPE_NAME_GROUP, MESSAGE_LEVEL_GROUP
 from dataclasses import dataclass, field
-import re
-import sys
-import os
-import argparse
 
 
 def is_valid_message(line: str) -> bool:
