@@ -130,7 +130,7 @@ class LogsReader:
             self.call_graph.add_info(warning=True)
 
 
-def main(logfile: str, export_file_name: str, parent=None, to_stdout: bool = True) -> CallGraph:
+def main(logfile: str, export_file_name: str=None, parent: Node=None, to_stdout: bool = True) -> CallGraph:
     if not os.path.exists(logfile):
         sys.stderr.write(f'{os.path.abspath(logfile)} is not exist\n')
         sys.exit(-1)
