@@ -151,8 +151,5 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Logs visualizer')
     parser.add_argument('logfile', help='one logfile for visualization', metavar='some_procedure.log')
     parser.add_argument('--export', help='export call graph to image', metavar='output.jpg')
-
     args = parser.parse_args()
-    logfile = args.logfile
-    export_file_name = args.export
-    main(logfile, export_file_name)
+    main(args.logfile, args.export)
