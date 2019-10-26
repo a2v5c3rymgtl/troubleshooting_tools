@@ -34,8 +34,10 @@ def get_message_level(line) -> str:
     return re.match(GENERAL_MESSAGE_PATTERN, line).group(MESSAGE_LEVEL_GROUP)
 
 
+
 def get_message_time(line) -> str:
     return re.match(GENERAL_MESSAGE_PATTERN, line).group(2)
+
 
 
 class Node(BaseNode):
@@ -58,8 +60,8 @@ class CallGraph:
         self.main_scope = Node(name='Start', parent=parent)
         self.node = self.main_scope
 
-    def commence(self, scope_name: str, call_time: str):
-        self.node = Node(name=f'{scope_name} ({call_time})', parent=self.node)
+    def commence(self, scope_name: str):
+        self.node = Node(name=scope_name, parent=self.node)
 
     def complete(self):
         if self.node.info.get('error'):
