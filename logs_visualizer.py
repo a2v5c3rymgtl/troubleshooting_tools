@@ -34,10 +34,8 @@ def get_message_level(line) -> str:
     return re.match(GENERAL_MESSAGE_PATTERN, line).group(MESSAGE_LEVEL_GROUP)
 
 
-
 def get_message_time(line) -> str:
     return re.match(GENERAL_MESSAGE_PATTERN, line).group(2)
-
 
 
 class Node(BaseNode):
