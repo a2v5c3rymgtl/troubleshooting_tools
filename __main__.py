@@ -1,3 +1,4 @@
+#!/usr/local/bin/python3.7
 import argparse
 import os
 import logs_visualizer
