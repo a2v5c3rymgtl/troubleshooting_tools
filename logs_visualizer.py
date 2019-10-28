@@ -8,7 +8,7 @@ from anytree import RenderTree
 from anytree.exporter import DotExporter
 from uuid import uuid4
 from config import GENERAL_MESSAGE_PATTERN, COMPLETE_MESSAGE_PATTERN, COMMENCE_MESSAGE_PATTERN
-from config import SCOPE_NAME_GROUP, MESSAGE_LEVEL_GROUP
+from config import MESSAGE_LEVEL_GROUP, CALL_TIME, NEW_SCOPE_NAME
 import colorama
 
 colorama.init()
@@ -27,7 +27,7 @@ def is_complete_message(line) -> bool:
 
 
 def get_scope_name(line) -> str:
-    return re.match(GENERAL_MESSAGE_PATTERN, line).group(SCOPE_NAME_GROUP)
+    return re.match(COMMENCE_MESSAGE_PATTERN, line).group(NEW_SCOPE_NAME)
 
 
 def get_message_level(line) -> str:
@@ -35,7 +35,7 @@ def get_message_level(line) -> str:
 
 
 def get_message_time(line) -> str:
-    return re.match(GENERAL_MESSAGE_PATTERN, line).group(2)
+    return re.match(GENERAL_MESSAGE_PATTERN, line).group(CALL_TIME)
 
 
 class Node(BaseNode):
@@ -55,21 +55,28 @@ class CallGraph:
     """
 
     def __init__(self, parent: Node = None):
-        self.main_scope = Node(name='Start', parent=parent)
-        self.node = self.main_scope
+        self.node = parent
+        self.main_scope = None
+        self._balance = 0
 
     def commence(self, scope_name: str, call_time: int):
+        self._balance += 1
         self.node = Node(name=f'{scope_name} ({call_time})', parent=self.node)
+        if self.main_scope is None:
+            self.main_scope = self.node
 
     def complete(self):
+        self._balance -= 1
         if self.node.info.get('error'):
             self.node.error = True
         if self.node.info.get('warning'):
             self.node.warning = True
 
-        if self.node.parent is None:
+        if self._balance < 0:
             sys.stderr.write('main function has been completed and have not parents, log is incorrect\n')
             self.node = Node(name='OVERFLOW CONTEXT', parent=self.node)
+        elif self._balance == 0 and self.node.parent is None:
+            self.node = self.main_scope
         else:
             self.node = self.node.parent
 
