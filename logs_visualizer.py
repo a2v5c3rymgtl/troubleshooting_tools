@@ -8,7 +8,7 @@ from anytree import RenderTree
 from anytree.exporter import DotExporter
 from uuid import uuid4
 from config import GENERAL_MESSAGE_PATTERN, COMPLETE_MESSAGE_PATTERN, COMMENCE_MESSAGE_PATTERN
-from config import SCOPE_NAME_GROUP, MESSAGE_LEVEL_GROUP
+from config import MESSAGE_LEVEL_GROUP, CALL_TIME, NEW_SCOPE_NAME
 import colorama
 
 colorama.init()
@@ -27,7 +27,7 @@ def is_complete_message(line) -> bool:
 
 
 def get_scope_name(line) -> str:
-    return re.match(GENERAL_MESSAGE_PATTERN, line).group(SCOPE_NAME_GROUP)
+    return re.match(COMMENCE_MESSAGE_PATTERN, line).group(NEW_SCOPE_NAME)
 
 
 def get_message_level(line) -> str:
@@ -35,7 +35,7 @@ def get_message_level(line) -> str:
 
 
 def get_message_time(line) -> str:
-    return re.match(GENERAL_MESSAGE_PATTERN, line).group(2)
+    return re.match(GENERAL_MESSAGE_PATTERN, line).group(CALL_TIME)
 
 
 class Node(BaseNode):
