@@ -55,21 +55,28 @@ class CallGraph:
     """
 
     def __init__(self, parent: Node = None):
-        self.main_scope = Node(name='Start', parent=parent)
-        self.node = self.main_scope
+        self.node = parent
+        self.main_scope = None
+        self._balance = 0
 
     def commence(self, scope_name: str, call_time: int):
+        self._balance += 1
         self.node = Node(name=f'{scope_name} ({call_time})', parent=self.node)
+        if self.main_scope is None:
+            self.main_scope = self.node
 
     def complete(self):
+        self._balance -= 1
         if self.node.info.get('error'):
             self.node.error = True
         if self.node.info.get('warning'):
             self.node.warning = True
 
-        if self.node.parent is None:
+        if self._balance < 0:
             sys.stderr.write('main function has been completed and have not parents, log is incorrect\n')
             self.node = Node(name='OVERFLOW CONTEXT', parent=self.node)
+        elif self._balance == 0 and self.node.parent is None:
+            self.node = self.main_scope
         else:
             self.node = self.node.parent
 
