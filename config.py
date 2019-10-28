@@ -1,17 +1,13 @@
 DATE_PATTERN = r'(\d{4}-\d{2}-\d{2})'
-TIME_PATTERN = r'(\d{2}:\d{2}:\d{2}.\d{3})'
+TIME_PATTERN = r'(\d{2}:\d{2}:\d{2},\d{3})'
 LOG_LEVEL_PATTERN = r'((?:trivia|verbose|info|warning|error))'
-PARENT_METHOD_PATTERN = r'(.*)'
-CODE_FILENAME_PATTERN = r'(.*.cs)'
+SCOPE_NAME_PATTERN = r'(.*)'
 CODE_LINENO_PATTERN = r'(\d{1,4})'
-PROCESS_ID_PATTERN = r'(\d{1,12})'
-THREAD_ID_PATTERN = r'(\d{1,12})'
 COMMON_MESSAGE_PATTERN = r'(.*)'
-COMMENCE_PATTERN = r'Commence: (.*)'
-COMPLETE_PATTERN = r'Complete: (.*)'
-MESSAGE_HEADER_PATTERN = f'^\[{DATE_PATTERN} {TIME_PATTERN}: \[{LOG_LEVEL_PATTERN}\] \'{PARENT_METHOD_PATTERN}\' ' \
-                          f'{CODE_FILENAME_PATTERN} {CODE_LINENO_PATTERN} .* \(Process id={PROCESS_ID_PATTERN}\) \(' \
-                          f'Thread id={THREAD_ID_PATTERN}\)\]:'
+COMMENCE_PATTERN = r'Commence method \'(\S{1,100})\''
+COMPLETE_PATTERN = r'Complete method \'(\S{1,100})\''
+MESSAGE_HEADER_PATTERN = f'^\[{LOG_LEVEL_PATTERN}\] {DATE_PATTERN} {TIME_PATTERN} {SCOPE_NAME_PATTERN}:' \
+                         f'{CODE_LINENO_PATTERN}:'
 
 # exported patterns
 GENERAL_MESSAGE_PATTERN = f'{MESSAGE_HEADER_PATTERN} {COMMON_MESSAGE_PATTERN} '
@@ -19,5 +15,5 @@ COMMENCE_MESSAGE_PATTERN = f'{MESSAGE_HEADER_PATTERN} {COMMENCE_PATTERN}'
 COMPLETE_MESSAGE_PATTERN = f'{MESSAGE_HEADER_PATTERN} {COMPLETE_PATTERN}'
 
 # exported groups ordinals
-MESSAGE_LEVEL_GROUP = 3
+MESSAGE_LEVEL_GROUP = 1
 SCOPE_NAME_GROUP = 4
