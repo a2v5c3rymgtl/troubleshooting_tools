@@ -35,13 +35,12 @@ class WorkflowVisualizer:
         return self.main.render_as_text()
 
 
-def main(logs_dir: str, export_file_name: str=None, name: str=None) -> logs_visualizer.CallGraph:
+def main(logs_dir: str, export_file_name: str = None, name: str = None) -> logs_visualizer.CallGraph:
     if not os.path.exists(logs_dir):
         sys.stderr.write(f'{os.path.abspath(logs_dir)} is not exist\n')
         sys.exit(-1)
 
     visualizer = WorkflowVisualizer(logs_dir, name)
-    visualizer.analyse()
 
     try:
         visualizer.analyse()
