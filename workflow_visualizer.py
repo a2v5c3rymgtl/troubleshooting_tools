@@ -35,13 +35,12 @@ class WorkflowVisualizer:
         return self.main.render_as_text()
 
 
-def main(logs_dir: str, export_file_name: str=None, name: str=None) -> logs_visualizer.CallGraph:
+def main(logs_dir: str, export_file_name: str = None, name: str = None) -> logs_visualizer.CallGraph:
     if not os.path.exists(logs_dir):
         sys.stderr.write(f'{os.path.abspath(logs_dir)} is not exist\n')
         sys.exit(-1)
 
     visualizer = WorkflowVisualizer(logs_dir, name)
-    visualizer.analyse()
 
     try:
         visualizer.analyse()
@@ -62,12 +61,3 @@ def main(logs_dir: str, export_file_name: str=None, name: str=None) -> logs_visu
     else:
         visualizer.main.render_as_text()
     return visualizer.main
-
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Logs visualizer')
-    parser.add_argument('logdir', help='path to logs directory for visualization', metavar='./logs')
-    parser.add_argument('--name', help='name of workflow')
-    parser.add_argument('--export', help='export call graph to image', metavar='output.jpg')
-    args = parser.parse_args()
-    main(args.logdir, args.export, args.name)
