@@ -165,11 +165,3 @@ def main(logfile: str, export_file_name: str=None, parent: Node=None, to_stdout:
     if to_stdout:
         reader.call_graph.render_as_text()
     return reader.call_graph
-
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Logs visualizer')
-    parser.add_argument('logfile', help='one logfile for visualization', metavar='some_procedure.log')
-    parser.add_argument('--export', help='export call graph to image', metavar='output.jpg')
-    args = parser.parse_args()
-    main(args.logfile, args.export, to_stdout=not args.export)

@@ -61,12 +61,3 @@ def main(logs_dir: str, export_file_name: str = None, name: str = None) -> logs_
     else:
         visualizer.main.render_as_text()
     return visualizer.main
-
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Logs visualizer')
-    parser.add_argument('logdir', help='path to logs directory for visualization', metavar='./logs')
-    parser.add_argument('--name', help='name of workflow')
-    parser.add_argument('--export', help='export call graph to image', metavar='output.jpg')
-    args = parser.parse_args()
-    main(args.logdir, args.export, args.name)
